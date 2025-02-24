@@ -15,7 +15,7 @@ jobs:
     - name: Install kubectl
       uses: azure/setup-kubectl@v2.0
       with:
-        version: 'v1.27.0' # default is latest stable
+        version: 'v1.27.0'
       id: install
 
     - name: Configure AWS Credentials
@@ -40,9 +40,20 @@ jobs:
 
     - name: Update kube config
       run: aws eks update-kubeconfig --name demo-ekscluster
-    
+
     - name: Deploy to EKS
       run: |
         kubectl apply -f deployment.yaml
         kubectl apply -f service.yaml
 
+    - name: Wait for deployment to complete
+      run: |
+        kubectl rollout status deployment/nodejs
+      id: check-deployment-status
+
+    # ✅ **Rollback Deployment if it Fails**
+    - name: Rollback on Failure
+      if: failure()
+      run: |
+        echo "Deployment failed! Rolling back to previous version..."
+        kubectl rollout undo deployment/node-app
